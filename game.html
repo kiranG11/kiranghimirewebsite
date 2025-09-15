@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>2D Motorbike Racing (HTML/JS)</title>
+<style>
+  body{background:#111;color:#fff;font-family:sans-serif;margin:0;padding:0}
+  canvas{display:block;margin:20px auto;background:#222;border:2px solid #555}
+  .info{max-width:800px;margin:10px auto;padding:10px;text-align:center}
+  a{color:#4af}
+</style>
+</head>
+<body>
+  <h2 style="text-align:center">2D Motorbike Racing 🏍️🏁</h2>
+  <canvas id="gameCanvas" width="800" height="400"></canvas>
+  <div class="info">
+    <p>Controls: <b>Arrow Keys</b> to move | <b>Space</b> = Nitro</p>
+    <p>Laps: 3 | Player vs 2 AI Racers</p>
+    <p>Proof of ChatGPT Game Creation: <a href="https://chatgpt.com/c/68c26850-8fa4-832f-8a7d-a0fcf90d9df3" target="_blank">ChatGPT Conversation Link</a></p>
+  </div>
+
+<script>
+const canvas=document.getElementById("gameCanvas");
+const ctx=canvas.getContext("2d");
+const WIDTH=canvas.width,HEIGHT=canvas.height;
+
+class Racer{
+  constructor(name,color,y,isPlayer=false){
+    this.name=name;this.color=color;
+    this.x=50;this.y=y;this.w=40;this.h=20;
+    this.lap=0;this.isPlayer=isPlayer;this.speed=2;this.finished=false;
+    this.nitro=100;
+  }
+  update(keys){
+    if(this.finished)return;
+    if(this.isPlayer){
+      if(keys.ArrowUp)this.y-=2;
+      if(keys.ArrowDown)this.y+=2;
+      if(keys.ArrowRight)this.x+=this.speed;
+      if(keys.ArrowLeft)this.x-=1;
+      if(keys.Space&&this.nitro>0){this.x+=4;this.nitro-=1;}
+      else if(this.nitro<100)this.nitro+=0.2;
+    }else{
+      this.x+=this.speed*Math.random()*1.2;
+      this.y+=Math.sin(Date.now()/500+this.x)*0.5;
+    }
+    if(this.x>WIDTH-60){this.lap++;this.x=50;if(this.lap>=3)this.finished=true;}
+  }
+  draw(){
+    ctx.fillStyle=this.color;
+    ctx.fillRect(this.x,this.y,this.w,this.h);
+    ctx.fillStyle="#fff";ctx.fillText(this.name+" L"+this.lap,this.x,this.y-5);
+  }
+}
+
+let keys={};
+window.addEventListener("keydown",e=>keys[e.code]=true);
+window.addEventListener("keyup",e=>keys[e.code]=false);
+
+let player=new Racer("Player","blue",100,true);
+let ai1=new Racer("AI 1","red",200);
+let ai2=new Racer("AI 2","green",300);
+let racers=[player,ai1,ai2];
+
+function loop(){
+  ctx.clearRect(0,0,WIDTH,HEIGHT);
+  ctx.fillStyle="#333";ctx.fillRect(WIDTH-60,0,10,HEIGHT);
+  ctx.fillStyle="#ff0";ctx.fillText("FINISH",WIDTH-80,20);
+
+  racers.forEach(r=>r.update(keys));
+  racers.forEach(r=>r.draw());
+
+  if(racers.some(r=>r.finished)){
+    ctx.fillStyle="white";
+    ctx.font="20px sans-serif";
+    let winner=racers.find(r=>r.finished);
+    ctx.fillText(winner.name+" Wins!",WIDTH/2-50,HEIGHT/2);
+  }
+  requestAnimationFrame(loop);
+}
+loop();
+</script>
+</body>
+</html>

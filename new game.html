@@ -1,0 +1,616 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Flower Scramble • Unscramble the Word</title>
+
+<!-- Google font -->
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800&display=swap" rel="stylesheet">
+
+<style>
+  :root{
+    --bg1: #FFF1F6;
+    --bg2: #F3F0FF;
+    --accent: #FF6FA7; /* pink */
+    --accent-dark: #E14B85;
+    --purple: #3A1C5B;
+    --card-bg: rgba(255,255,255,0.85);
+    --glass: rgba(255,255,255,0.6);
+    --success: #2BB673;
+    --danger: #E84A5F;
+    --shadow: 0 8px 30px rgba(58,28,91,0.12);
+    font-family: 'Nunito', system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  }
+
+  /* Flower pastel gradient + subtle pattern via SVG */
+  body{
+    margin:0;
+    min-height:100vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background:
+      radial-gradient(circle at 10% 10%, rgba(255,235,240,0.7), transparent 12%),
+      radial-gradient(circle at 90% 90%, rgba(240,240,255,0.6), transparent 12%),
+      linear-gradient(135deg, var(--bg1) 0%, var(--bg2) 100%);
+    color:var(--purple);
+    -webkit-font-smoothing:antialiased;
+    -moz-osx-font-smoothing:grayscale;
+    padding:28px;
+  }
+
+  /* Page layout */
+  .wrap{
+    width:100%;
+    max-width:960px;
+    display:grid;
+    grid-template-columns: 1fr 360px;
+    gap:26px;
+    align-items:start;
+  }
+
+  /* On small screens, stack */
+  @media (max-width:880px){
+    .wrap{ grid-template-columns: 1fr; padding:6px; }
+  }
+
+  /* Card style */
+  .card{
+    background:var(--card-bg);
+    border-radius:18px;
+    padding:22px;
+    box-shadow:var(--shadow);
+    backdrop-filter: blur(6px) saturate(1.05);
+    border: 1px solid rgba(255,255,255,0.6);
+  }
+
+  header.top {
+    display:flex;
+    align-items:center;
+    gap:14px;
+    margin-bottom:8px;
+  }
+  .logo {
+    width:68px;height:68px;border-radius:12px;
+    background:linear-gradient(135deg,var(--accent),#FFD6EA);
+    display:flex;align-items:center;justify-content:center;
+    color:white;font-weight:800;font-size:20px;box-shadow:0 6px 18px rgba(225,75,133,0.16);
+  }
+  h1{ margin:0;font-size:1.6rem; letter-spacing:-0.5px;}
+  p.lead{ margin:6px 0 18px;color:rgba(58,28,91,0.8); }
+
+  /* Scramble display */
+  .scramble-area{
+    display:flex;
+    flex-direction:column;
+    gap:12px;
+    align-items:center;
+  }
+
+  .word-card{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:12px;
+    padding:18px;
+    min-height:88px;
+    width:100%;
+    border-radius:12px;
+    background: linear-gradient(180deg, rgba(255,255,255,0.9), rgba(255,255,255,0.82));
+    box-shadow: 0 10px 30px rgba(60,20,80,0.06);
+    border:1px solid rgba(255,255,255,0.7);
+    transition: transform .28s ease, box-shadow .28s ease;
+  }
+  .word-card:hover{ transform: translateY(-4px); box-shadow: 0 18px 40px rgba(60,20,80,0.08); }
+
+  .scrambled{
+    font-size:2.1rem;
+    font-weight:800;
+    color:var(--purple);
+    letter-spacing:6px;
+    text-transform:uppercase;
+    display:flex;
+    gap:10px;
+    align-items:center;
+    justify-content:center;
+  }
+
+  /* controls */
+  .controls{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; justify-content:center; }
+  input[type="text"]{
+    padding:12px 14px;
+    border-radius:10px;
+    border:1px solid rgba(58,28,91,0.08);
+    min-width:220px;
+    font-size:1rem;
+    outline:none;
+    box-shadow:none;
+  }
+  input[type="text"]:focus{ box-shadow:0 6px 20px rgba(58,28,91,0.06); border-color:var(--accent-dark); }
+
+  .btn{
+    padding:10px 14px;
+    border-radius:10px;
+    border:none;
+    background:linear-gradient(180deg,var(--accent),var(--accent-dark));
+    color:white;
+    font-weight:700;
+    cursor:pointer;
+    transition: transform .12s ease, box-shadow .12s;
+    box-shadow: 0 8px 20px rgba(225,75,133,0.14);
+  }
+  .btn:hover{ transform: translateY(-3px); }
+  .btn.secondary{
+    background:transparent;
+    color:var(--purple);
+    border:1px solid rgba(58,28,91,0.08);
+    box-shadow:none;
+  }
+
+  .btn.ghost{
+    background:transparent;color:var(--accent-dark);border:1px dashed rgba(225,75,133,0.12);
+  }
+
+  .meta{
+    display:flex;
+    gap:10px;
+    align-items:center;
+    justify-content:space-between;
+    margin-top:12px;
+    color:rgba(58,28,91,0.7);
+  }
+
+  /* right column */
+  .sidebar{
+    display:flex;
+    flex-direction:column;
+    gap:14px;
+    position:relative;
+  }
+
+  .panel{
+    padding:14px;border-radius:12px;background:var(--glass);border:1px solid rgba(255,255,255,0.6);
+  }
+
+  .stat{
+    display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px dashed rgba(58,28,91,0.04);
+  }
+  .stat:last-child{ border-bottom:0; }
+
+  .difficulty select, .volume input{ width:100%; padding:8px; border-radius:10px; border:1px solid rgba(58,28,91,0.08); }
+
+  /* message area (for ARIA live) */
+  .message{
+    margin-top:12px;
+    font-weight:800;
+    color:var(--success);
+    text-align:center;
+    min-height:28px;
+    font-size:1.05rem;
+  }
+
+  /* winning overlay */
+  .win {
+    position:fixed;
+    inset:0;
+    display:flex;align-items:center;justify-content:center;
+    pointer-events:none;
+  }
+  .win .bubble{
+    background:linear-gradient(135deg,#fff,#FFEAF0);
+    border-radius:18px;padding:24px 30px;
+    box-shadow:0 20px 70px rgba(58,28,91,0.18);
+    transform:translateY(-20px) scale(.96);
+    animation:popIn .7s cubic-bezier(.2,.9,.3,1) forwards;
+    text-align:center; pointer-events:auto;
+    border: 1px solid rgba(255,255,255,0.9);
+  }
+  @keyframes popIn{
+    to { transform:translateY(0) scale(1); }
+  }
+  .win h2{
+    margin:0 0 8px;font-size:2.1rem;color:var(--accent-dark);
+    animation: bounce 1.2s ease;
+  }
+  @keyframes bounce{
+    0%{ transform:translateY(-6px); }
+    50%{ transform:translateY(4px); }
+    100%{ transform:translateY(0); }
+  }
+  .fireworks{
+    margin-top:10px;font-weight:700;color:var(--purple);
+  }
+
+  /* small helpers */
+  .row{ display:flex;gap:8px;align-items:center;flex-wrap:wrap; }
+  .muted{ color:rgba(58,28,91,0.55); font-size:0.95rem; }
+  .hint-pill{ background:rgba(58,28,91,0.06); padding:6px 8px;border-radius:8px;font-weight:700; }
+
+  /* keyboard focus visible */
+  :focus{ outline: 3px solid rgba(255,111,167,0.15); outline-offset:2px; }
+
+  /* accessibility: high contrast tweak */
+  @media (prefers-contrast: more){
+    .card, .panel{ border-color: rgba(58,28,91,0.2); }
+  }
+</style>
+</head>
+<body>
+  <div class="wrap" role="application" aria-labelledby="title">
+    <main class="card" aria-live="polite">
+      <header class="top">
+        <div class="logo" aria-hidden="true">🌸</div>
+        <div>
+          <h1 id="title">Flower Scramble</h1>
+          <p class="lead">Unscramble the word by typing the correct answer below. Use hints, reshuffle, or change difficulty. Play with keyboard — press <strong>Enter</strong> to submit.</p>
+        </div>
+      </header>
+
+      <section class="scramble-area" aria-labelledby="game">
+        <div class="word-card" id="scrambleCard" role="img" aria-label="Scrambled word">
+          <div class="scrambled" id="scrambledText">— — —</div>
+        </div>
+
+        <div class="controls" aria-hidden="false">
+          <label for="answerInput" class="sr-only" style="display:none">Type your guess</label>
+          <input id="answerInput" type="text" aria-label="Type your answer" placeholder="Type the unscrambled word and press Enter" autocomplete="off" autocapitalize="none" />
+          <button class="btn" id="submitBtn" title="Submit (Enter)">Submit</button>
+          <button class="btn secondary" id="reshuffleBtn" title="Reshuffle letters">Reshuffle</button>
+          <button class="btn ghost" id="hintBtn" title="Get a hint (reveals first letter)">Hint</button>
+        </div>
+
+        <div class="meta" aria-hidden="false">
+          <div class="muted">Timer: <span id="timer">—</span></div>
+          <div class="muted">Score: <span id="score">0</span></div>
+          <div class="muted">Streak: <span id="streak">0</span></div>
+        </div>
+
+        <div class="message" id="message" aria-live="assertive" aria-atomic="true"></div>
+      </section>
+    </main>
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="panel">
+        <div class="stat"><div>Difficulty</div>
+        <div class="difficulty">
+          <select id="difficulty" aria-label="Choose difficulty">
+            <option value="easy">Easy (short words, more time)</option>
+            <option value="medium" selected>Medium</option>
+            <option value="hard">Hard (longer words, less time)</option>
+          </select>
+        </div></div>
+
+        <div class="stat"><div>Words remaining</div><div id="remaining">—</div></div>
+        <div class="stat"><div>High score</div><div id="highscore">0</div></div>
+      </div>
+
+      <div class="panel">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <strong>Audio</strong>
+          <div class="row">
+            <label for="muteToggle" class="muted" style="font-size:0.9rem">Mute</label>
+            <input id="muteToggle" type="checkbox" aria-label="Mute sounds" />
+          </div>
+        </div>
+        <div style="margin-top:8px" class="volume">
+          <div class="muted">Music volume</div>
+          <input id="musicVol" type="range" min="0" max="1" step="0.01" value="0.25" aria-label="Background music volume" />
+        </div>
+      </div>
+
+      <div class="panel">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <strong>Actions</strong>
+          <div class="muted">Quick controls</div>
+        </div>
+        <div class="row">
+          <button class="btn secondary" id="nextBtn">Skip → Next</button>
+          <button class="btn secondary" id="resetBtn">Reset Game</button>
+        </div>
+        <div style="margin-top:10px" class="muted">Hints cost points. Use thoughtfully!</div>
+      </div>
+
+      <div class="panel">
+        <div style="font-weight:700;margin-bottom:8px">How to play</div>
+        <div class="muted" style="font-size:0.95rem;line-height:1.4">
+          Unscramble the letters shown above by typing the correct word and pressing Enter or Submit. Use Hint to reveal the first letter or Reshuffle to try a new order. Difficulty affects word length and timer.
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <!-- Winning overlay -->
+  <div class="win" id="winOverlay" aria-hidden="true" style="display:none">
+    <div class="bubble" role="dialog" aria-labelledby="winText" aria-live="polite">
+      <h2 id="winText">Nice have winned!!! 🎉</h2>
+      <div class="fireworks" id="winDetails">You solved the puzzle — great job!</div>
+      <div style="margin-top:12px">
+        <button class="btn" id="playAgain">Play again</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+/*
+  Flower Scramble — polished rewrite
+  - Uses programmatic audio (Web Audio) for effects & soft loop music
+  - Difficulty & timer
+  - Hints, reshuffle, keyboard submit
+  - Responsive, accessible, and reusable code
+*/
+
+/* ------------------------------
+   WORD LIST (expandable, reusable)
+   - Not hard-coded into gameplay logic
+   - Words include many flower-related and common words for theme + general words
+--------------------------------*/
+const WORDS = [
+  "bloom","petal","garden","orchid","sunflower","blossom","tulip","rose","poppy","daisy",
+  "lavender","jasmine","lily","magnolia","peony","azalea","butterfly","nectar","fragrant","meadow",
+  "buttercup","hibiscus","marigold","gardenia","wildflower","bouquet","floral","perfume","pollinate",
+  "vine","stem","leaves","sprout","seedling","bud","briar","aroma","colors","petunia","hibiscus",
+  "butterfly","sunrise","morning","serene","delight","uplift","breeze","roses","blush","pastel",
+  // add more general words for replayability
+  "mirror","silver","candle","rainbow","harbor","castle","comet","planet","ocean","journey",
+  "music","rhythm","canvas","poetry","whisper","harmony","lighthouse","meadowlark","ember"
+];
+
+/* ------------------------------
+   Utilities
+--------------------------------*/
+function shuffleArray(arr) {
+  // Fisher-Yates (non-destructive)
+  const a = arr.slice();
+  for (let i=a.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+function scrambleWord(word){
+  if(!word) return "";
+  // shuffle until it's different (or timeout)
+  if(word.length < 2) return word;
+  let chars = word.split('');
+  for (let tries=0; tries<30; tries++){
+    const sh = shuffleArray(chars);
+    if (sh.join('') !== word) return sh.join('');
+  }
+  return chars.join('');
+}
+
+/* ------------------------------
+   Audio (WebAudio) — no external files
+   - Soft ambient loop + effect synths
+--------------------------------*/
+class AudioEngine {
+  constructor(){
+    this.ctx = null;
+    this.masterGain = null;
+    this.musicGain = null;
+    this.effectsGain = null;
+    this.isMuted = false;
+    this.musicNode = null;
+  }
+  init(){
+    try {
+      this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+      this.masterGain = this.ctx.createGain();
+      this.musicGain = this.ctx.createGain();
+      this.effectsGain = this.ctx.createGain();
+      this.masterGain.connect(this.ctx.destination);
+      this.musicGain.connect(this.masterGain);
+      this.effectsGain.connect(this.masterGain);
+      this.masterGain.gain.value = 0.95;
+      this.musicGain.gain.value = 0.25;
+      this.effectsGain.gain.value = 0.9;
+      this._startMusicLoop();
+    } catch(e) {
+      console.warn("Audio not available", e);
+    }
+  }
+
+  setMusicVolume(v){
+    if(this.musicGain) this.musicGain.gain.value = v;
+  }
+  setMuted(m){
+    this.isMuted = !!m;
+    if(this.masterGain) this.masterGain.gain.value = m?0:0.95;
+  }
+
+  _startMusicLoop(){
+    if(!this.ctx) return;
+    // simple ambient pad via oscillator + LFO
+    const osc = this.ctx.createOscillator();
+    osc.type = 'sine';
+    const gain = this.ctx.createGain();
+    gain.gain.value = 0.0001;
+    osc.connect(gain);
+    gain.connect(this.musicGain);
+
+    // gentle volume envelope
+    const now = this.ctx.currentTime;
+    gain.gain.cancelScheduledValues(now);
+    gain.gain.setValueAtTime(0.0001, now);
+    gain.gain.linearRampToValueAtTime(0.025, now+2);
+    gain.gain.setValueAtTime(0.025, now+10);
+
+    osc.frequency.value = 220; // base tone
+    osc.start();
+
+    // add slow detuned oscillator for warmth
+    const osc2 = this.ctx.createOscillator();
+    osc2.type = 'triangle'; osc2.frequency.value = 440;
+    const gain2 = this.ctx.createGain(); gain2.gain.value = 0.005;
+    osc2.connect(gain2); gain2.connect(this.musicGain);
+    osc2.start();
+
+    // subtle periodic melodic pluck using scheduled notes
+    const notes = [330, 392, 262, 294, 349];
+    const scheduleNote = (i, t) => {
+      if(!this.ctx) return;
+      const o = this.ctx.createOscillator();
+      o.type = 'sine';
+      const g = this.ctx.createGain();
+      g.gain.value = 0;
+      o.connect(g); g.connect(this.musicGain);
+      o.frequency.value = notes[i%notes.length];
+      const start = this.ctx.currentTime + t;
+      g.gain.setValueAtTime(0, start);
+      g.gain.linearRampToValueAtTime(0.035, start+0.01);
+      g.gain.exponentialRampToValueAtTime(0.0001, start+1.2);
+      o.start(start);
+      o.stop(start+1.5);
+    };
+
+    // schedule repeating pattern
+    let loopPeriod = 6.0;
+    const loopFunc = () => {
+      if(!this.ctx) return;
+      const base = this.ctx.currentTime + 0.2;
+      for(let i=0;i<5;i++){
+        scheduleNote(i, i*0.85);
+      }
+      this.musicLoopTimeout = setTimeout(loopFunc, loopPeriod*1000);
+    };
+    loopFunc();
+
+    this.musicNode = {osc,osc2, gain, gain2};
+  }
+
+  // simple effect: correct (pleasant), wrong (short buzz), victory (chime)
+  playCorrect(){
+    if(!this.ctx) return;
+    const o = this.ctx.createOscillator();
+    o.type = 'sine';
+    const g = this.ctx.createGain();
+    g.gain.value = 0;
+    o.connect(g); g.connect(this.effectsGain);
+    o.frequency.value = 660;
+    const now = this.ctx.currentTime;
+    g.gain.setValueAtTime(0.0001, now);
+    g.gain.exponentialRampToValueAtTime(0.12, now+0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, now+0.35);
+    o.start(now); o.stop(now+0.4);
+  }
+
+  playWrong(){
+    if(!this.ctx) return;
+    // quick noise/buzz
+    const o = this.ctx.createOscillator();
+    o.type = 'square';
+    const g = this.ctx.createGain();
+    o.connect(g); g.connect(this.effectsGain);
+    const now = this.ctx.currentTime;
+    o.frequency.setValueAtTime(160, now);
+    g.gain.setValueAtTime(0.0001, now);
+    g.gain.exponentialRampToValueAtTime(0.08, now+0.01);
+    g.gain.exponentialRampToValueAtTime(0.0001, now+0.15);
+    o.start(now); o.stop(now+0.17);
+  }
+
+  playVictory(){
+    if(!this.ctx) return;
+    const notes = [880, 988, 1174, 1318];
+    const now = this.ctx.currentTime;
+    notes.forEach((n,i)=>{
+      const o = this.ctx.createOscillator();
+      o.type = 'sine';
+      const g = this.ctx.createGain();
+      g.gain.value = 0;
+      o.connect(g); g.connect(this.effectsGain);
+      const start = now + i*0.16;
+      o.frequency.setValueAtTime(n, start);
+      g.gain.setValueAtTime(0.0001, start);
+      g.gain.exponentialRampToValueAtTime(0.12, start+0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, start+0.4);
+      o.start(start); o.stop(start+0.5);
+    });
+  }
+}
+
+const audio = new AudioEngine();
+
+/* ------------------------------
+   Game State
+--------------------------------*/
+const DOM = {
+  scrambledText: document.getElementById('scrambledText'),
+  answerInput: document.getElementById('answerInput'),
+  submitBtn: document.getElementById('submitBtn'),
+  reshuffleBtn: document.getElementById('reshuffleBtn'),
+  hintBtn: document.getElementById('hintBtn'),
+  nextBtn: document.getElementById('nextBtn'),
+  resetBtn: document.getElementById('resetBtn'),
+  message: document.getElementById('message'),
+  timerEl: document.getElementById('timer'),
+  remainingEl: document.getElementById('remaining'),
+  scoreEl: document.getElementById('score'),
+  streakEl: document.getElementById('streak'),
+  winOverlay: document.getElementById('winOverlay'),
+  playAgain: document.getElementById('playAgain'),
+  difficulty: document.getElementById('difficulty'),
+  muteToggle: document.getElementById('muteToggle'),
+  musicVol: document.getElementById('musicVol'),
+  highscoreEl: document.getElementById('highscore')
+};
+
+let game = {
+  pool: [],
+  currentWord: null,
+  scrambled: null,
+  score: 0,
+  streak: 0,
+  timer: null,
+  timerRemaining: 0,
+  timerInterval: null,
+  isRunning: false,
+  difficulty: 'medium',
+  wordsToPlay: 12,
+  usedWords: new Set(),
+  highscore: Number(localStorage.getItem('flower_highscore') || 0)
+};
+
+/* initial UI */
+DOM.highscoreEl.textContent = game.highscore;
+
+/* ------------------------------
+   Difficulty settings
+--------------------------------*/
+const DIFFICULTY = {
+  easy: {min:3, max:6, time:20, hintPenalty:2},
+  medium: {min:4, max:9, time:16, hintPenalty:4},
+  hard: {min:5, max:12, time:12, hintPenalty:6}
+};
+
+/* ------------------------------
+   Game functions
+--------------------------------*/
+function filterWordsForDifficulty(list, diff){
+  const cfg = DIFFICULTY[diff];
+  return list.filter(w => w.length >= cfg.min && w.length <= cfg.max);
+}
+
+function startGame(){
+  // init audio context on first user gesture (some browsers block Auto)
+  if(!audio.ctx){
+    audio.init();
+  }
+  game.difficulty = DOM.difficulty.value;
+  game.pool = shuffleArray(filterWordsForDifficulty(WORDS, game.difficulty));
+  game.usedWords.clear();
+  game.score = 0; game.streak = 0;
+  game.wordsToPlay = Math.min(12, game.pool.length);
+  updateDisplay();
+  nextWord(true);
+  game.isRunning = true;
+  DOM.message.textContent = "Game started! Unscramble the word.";
+}
+
+function pickNext(){
+  // pick a word not used recently
+  for (let i=0;i<game.pool.length;i++){
+    const w = game.pool[i];
+    if(!ga

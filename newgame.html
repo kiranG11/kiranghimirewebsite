@@ -1,0 +1,404 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>2D Motorbike Racing — Remastered UI (Responsive & Music)</title>
+<style>
+  :root{
+    --bg-1:#0f1724; /* deep navy */
+    --bg-2:#071127; /* darker gradient */
+    --card:#0b1220;
+    --accent:#00d4ff; /* cyan accent */
+    --accent-2:#7b61ff; /* purple accent */
+    --muted:#9aa6b2;
+    --track:#151a24;
+    --panel:rgba(255,255,255,0.03);
+  }
+  html,body{height:100%;margin:0;font-family:Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;font-weight:500;color:var(--muted);background:linear-gradient(180deg,var(--bg-1),var(--bg-2));-webkit-font-smoothing:antialiased}
+
+  header{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:linear-gradient(90deg, rgba(255,255,255,0.02), rgba(0,0,0,0));backdrop-filter:blur(6px);border-bottom:1px solid rgba(255,255,255,0.02)}
+  header h1{color:#e6eef6;font-size:16px;margin:0;display:flex;gap:10px;align-items:center}
+  header .brand-badge{display:inline-block;padding:6px 10px;border-radius:10px;background:linear-gradient(90deg,var(--accent),var(--accent-2));color:#021125;font-weight:700}
+  header .controls{display:flex;gap:10px;align-items:center}
+  header .music-btn{padding:8px 12px;border-radius:8px;background:transparent;border:1px solid rgba(255,255,255,0.04);color:var(--muted);cursor:pointer}
+
+  main{max-width:1100px;margin:14px auto;padding:10px}
+  .game-wrap{display:grid;grid-template-columns:1fr 320px;gap:18px}
+  .canvas-wrap{position:relative;border-radius:12px;box-shadow:0 12px 30px rgba(2,6,23,0.7);background:linear-gradient(180deg,var(--track),#0b0f14);border:1px solid rgba(255,255,255,0.03);overflow:hidden}
+  canvas{display:block;width:100%;height:auto;border-radius:12px}
+
+  /* Right panel */
+  .panel{background:var(--panel);border:1px solid rgba(255,255,255,0.02);padding:14px;border-radius:12px;color:var(--muted)}
+  .panel h3{color:#e6eef6;margin:0 0 8px 0}
+  .stat{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px dashed rgba(255,255,255,0.02)}
+  .btn{display:inline-block;padding:8px 12px;border-radius:8px;background:linear-gradient(90deg,var(--accent),var(--accent-2));color:#021125;font-weight:700;text-decoration:none;cursor:pointer;border:none}
+
+  .nitro-bar{height:10px;background:rgba(255,255,255,0.04);border-radius:999px;overflow:hidden}
+  .nitro-fill{height:100%;width:100%;background:linear-gradient(90deg,#ffe55a,var(--accent));transform-origin:left;transition:width 0.2s linear}
+
+  .lap{font-weight:700;color:#e6eef6}
+  footer.info{max-width:980px;margin:12px auto;text-align:center;color:var(--muted);font-size:13px}
+
+  /* small animations */
+  @keyframes pulseAccent{0%{box-shadow:0 0 0 0 rgba(0,212,255,0.15)}50%{box-shadow:0 0 20px 6px rgba(123,97,255,0.06)}100%{box-shadow:0 0 0 0 rgba(0,212,255,0.0)}}
+  .accent-pill{padding:6px 10px;border-radius:999px;background:linear-gradient(90deg,var(--accent),var(--accent-2));color:#021125;font-weight:700;animation:pulseAccent 3s infinite}
+
+  /* leaderboard */
+  .leaderboard{margin-top:10px}
+  .leader-row{display:flex;justify-content:space-between;padding:8px;border-radius:8px;margin-bottom:8px;background:linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.00));align-items:center}
+  .leader-row .name{color:#e6eef6}
+  .finish-badge{padding:4px 8px;border-radius:6px;background:linear-gradient(90deg,#fff6b3,#ffd36e);color:#2b1b00;font-weight:700;font-size:12px}
+
+  /* mobile controls */
+  .touch-controls{display:none;position:absolute;left:50%;transform:translateX(-50%);bottom:12px;gap:12px;align-items:center}
+  .dpad{display:flex;gap:6px}
+  .btn-touch{width:56px;height:56px;border-radius:12px;background:rgba(255,255,255,0.03);display:flex;align-items:center;justify-content:center;font-weight:700;color:#e6eef6;border:1px solid rgba(255,255,255,0.03);font-size:18px;touch-action:none}
+  .btn-action{width:64px;height:64px;border-radius:50%;background:linear-gradient(90deg,var(--accent),var(--accent-2));color:#021125;border:none;font-weight:800}
+
+  /* small responsive */
+  @media(max-width:900px){
+    .game-wrap{grid-template-columns:1fr}
+    .panel{order:2}
+    .touch-controls{display:flex}
+    header h1{font-size:14px}
+    header .brand-badge{padding:4px 8px}
+  }
+</style>
+</head>
+<body>
+  <header>
+    <h1><span class="brand-badge">RACE X</span> 2D Motorbike Racing — Remastered UI</h1>
+    <div class="controls">
+      <button id="musicBtn" class="music-btn">Play Music</button>
+      <div style="display:flex;gap:10px;align-items:center">
+        <div class="accent-pill">LIVE</div>
+        <button id="resetBtn" class="btn">Reset Race</button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <div class="game-wrap">
+      <div class="canvas-wrap" id="canvasWrap">
+        <canvas id="gameCanvas" width="860" height="420"></canvas>
+
+        <!-- Touch controls for mobile (won't interfere on desktop) -->
+        <div class="touch-controls" id="touchControls">
+          <div class="dpad">
+            <div class="btn-touch" id="btnUp">▲</div>
+            <div style="display:flex;flex-direction:row;gap:6px;">
+              <div class="btn-touch" id="btnLeft">◀</div>
+              <div class="btn-touch" id="btnRight">▶</div>
+            </div>
+            <div class="btn-touch" id="btnDown">▼</div>
+          </div>
+          <div>
+            <button class="btn-action" id="btnNitro">NITRO</button>
+          </div>
+        </div>
+      </div>
+
+      <aside class="panel">
+        <h3>Race Info</h3>
+        <div class="stat"><div>Player Lap</div><div class="lap" id="lapDisplay">0 / 3</div></div>
+        <div class="stat"><div>Nitro</div><div style="width:60%"><div class="nitro-bar"><div id="nitroFill" class="nitro-fill" style="width:100%"></div></div></div></div>
+        <div class="stat"><div>Controls</div><div style="text-align:right;font-size:13px">Arrows / Touch D-Pad = Move · Space / NITRO = Nitro</div></div>
+
+        <div style="margin-top:12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <button id="toggleTrails" class="btn" style="padding:8px">Toggle Trails</button>
+          <button id="toggleNames" class="btn" style="padding:8px">Toggle Names</button>
+        </div>
+
+        <div class="leaderboard">
+          <h3 style="margin-top:12px">Leaderboard</h3>
+          <div id="leaderboardList">
+            <!-- populated by JS -->
+          </div>
+        </div>
+      </aside>
+    </div>
+  </main>
+
+  <footer class="info">Controls: <b>Arrow Keys</b> to move | <b>Space</b> = Nitro · Laps: 3 · Player vs 2 AI Racers</footer>
+
+<script>
+/* ======= Responsive canvas setup (works on mobile + desktop) ======= */
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+const canvasWrap = document.getElementById('canvasWrap');
+let logicalWidth = 860, logicalHeight = 420;
+
+function resizeCanvas(){
+  const dpr = window.devicePixelRatio || 1;
+  const containerWidth = Math.max(320, canvasWrap.clientWidth - 0);
+  const scale = containerWidth / logicalWidth;
+  const displayWidth = Math.floor(logicalWidth * scale);
+  const displayHeight = Math.floor(logicalHeight * scale);
+
+  canvas.style.width = displayWidth + 'px';
+  canvas.style.height = displayHeight + 'px';
+
+  canvas.width = Math.floor(logicalWidth * dpr * scale);
+  canvas.height = Math.floor(logicalHeight * dpr * scale);
+
+  // normalize drawing scale
+  ctx.setTransform(dpr * scale, 0, 0, dpr * scale, 0, 0);
+}
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
+
+/* ======= UI elements ======= */
+const lapDisplay=document.getElementById('lapDisplay');
+const nitroFill=document.getElementById('nitroFill');
+const resetBtn=document.getElementById('resetBtn');
+const leaderboardList=document.getElementById('leaderboardList');
+let showTrails=true, showNames=true;
+
+document.getElementById('toggleTrails').addEventListener('click',()=>{showTrails=!showTrails;document.getElementById('toggleTrails').textContent=showTrails? 'Trails: ON':'Trails: OFF'});
+document.getElementById('toggleNames').addEventListener('click',()=>{showNames=!showNames;document.getElementById('toggleNames').textContent=showNames? 'Names: ON':'Names: OFF'});
+resetBtn.addEventListener('click',resetRace);
+
+/* ======= Controls (keyboard + touch mapping) ======= */
+let keys = {};
+window.addEventListener('keydown', e=>{ keys[e.code]=true; if(e.code==='Space') e.preventDefault(); });
+window.addEventListener('keyup', e=>keys[e.code]=false);
+
+// Touch buttons
+const btnUp = document.getElementById('btnUp');
+const btnDown = document.getElementById('btnDown');
+const btnLeft = document.getElementById('btnLeft');
+const btnRight = document.getElementById('btnRight');
+const btnNitro = document.getElementById('btnNitro');
+
+function bindTouch(el, code){
+  el.addEventListener('pointerdown', e=>{ e.preventDefault(); keys[code]=true; /* ensure audio starts on first touch if needed */ startAudioOnFirstGesture(); });
+  el.addEventListener('pointerup', e=>{ e.preventDefault(); keys[code]=false });
+  el.addEventListener('pointercancel', e=>{ keys[code]=false });
+}
+bindTouch(btnUp,'ArrowUp'); bindTouch(btnDown,'ArrowDown'); bindTouch(btnLeft,'ArrowLeft'); bindTouch(btnRight,'ArrowRight'); bindTouch(btnNitro,'Space');
+
+/* ======= Particle, Racer, and Game logic (kept intact, minor responsive-safe tweaks) ======= */
+class Particle{constructor(x,y,life,clr){this.x=x;this.y=y;this.life=life;this.clr=clr;this.vx=(Math.random()-0.5)*1.5;this.vy=-Math.random()*1.2-0.3}
+  update(){this.x+=this.vx;this.y+=this.vy;this.life-=1}
+  draw(){ctx.save();ctx.globalAlpha=Math.max(0, this.life/30);ctx.fillStyle=this.clr;ctx.fillRect(this.x,this.y,2,2);ctx.restore();}
+}
+
+class Racer{
+  constructor(name,color,y,isPlayer=false){
+    this.name=name;this.color=color;this.x=60;this.y=y;this.w=44;this.h=22;
+    this.lap=0;this.isPlayer=isPlayer;this.baseSpeed=2;this.speed=this.baseSpeed;this.finished=false;this.nitro=100;this.tilt=0;this.particles=[];
+  }
+  update(keys){
+    if(this.finished)return;
+    if(this.isPlayer){
+      if(keys.ArrowUp) this.y-=2.2;
+      if(keys.ArrowDown) this.y+=2.2;
+      if(keys.ArrowRight) this.x+=this.speed;
+      if(keys.ArrowLeft) this.x-=1.2;
+      if(keys.Space && this.nitro>0){this.x+=4.2;this.nitro-=1; this.tilt= -0.25; if(showTrails) this.spawnNitro('rgba(0,212,255,0.9)')}
+      else { if(this.nitro<100) this.nitro+=0.18; this.tilt*=0.92 }
+    } else {
+      // smoother AI movement and small oscillation
+      this.x+=this.speed*(0.9 + Math.random()*0.6);
+      this.y+=Math.sin((Date.now()/600) + this.x*0.02)*0.6;
+      this.tilt=Math.sin(this.x*0.02)*0.12;
+      // occasional nitro burst for AI
+      if(Math.random()<0.002 && this.nitro>10){this.x+=6;this.nitro-=10; if(showTrails) this.spawnNitro('rgba(255,90,90,0.9)')}
+      if(this.nitro<100) this.nitro+=0.05;
+    }
+    // clamp
+    const displayH = logicalHeight;
+    this.y=Math.max(20,Math.min(displayH-40,this.y));
+    this.x=Math.max(10,this.x);
+
+    if(this.x>logicalWidth-120){
+      this.lap++; this.x=60;
+      if(this.lap>=3) this.finished=true;
+    }
+
+    // update particles
+    for(let i=this.particles.length-1;i>=0;i--){this.particles[i].update(); if(this.particles[i].life<=0) this.particles.splice(i,1)}
+  }
+  spawnNitro(clr){
+    for(let i=0;i<6;i++) this.particles.push(new Particle(this.x-4, this.y+10 + (Math.random()*6-3), 30 + Math.random()*10, clr));
+    if(this.particles.length>120) this.particles.splice(0, this.particles.length-120);
+  }
+  draw(){
+    // shadow
+    ctx.save();
+    ctx.beginPath(); ctx.ellipse(this.x+this.w/2, this.y+this.h+8, this.w/2+6, 6, 0,0,Math.PI*2); ctx.fillStyle='rgba(0,0,0,0.35)'; ctx.fill(); ctx.closePath();
+    ctx.restore();
+
+    // bike body (rounded rect)
+    ctx.save();
+    ctx.translate(this.x+this.w/2, this.y+this.h/2);
+    ctx.rotate(this.tilt);
+
+    // body
+    roundRect(ctx, -this.w/2, -this.h/2, this.w, this.h, 6);
+    ctx.fillStyle=this.color; ctx.fill();
+    // wheels
+    ctx.beginPath(); ctx.fillStyle='#0b0d0f'; ctx.ellipse(-this.w/3, this.h/2, 6,6,0,0,Math.PI*2); ctx.ellipse(this.w/3, this.h/2, 6,6,0,0,Math.PI*2); ctx.fill();
+
+    // small accent
+    ctx.fillStyle='rgba(255,255,255,0.12)'; roundRect(ctx, -this.w/2+6, -this.h/2+4, this.w-14, 6, 3); ctx.fill();
+
+    ctx.restore();
+
+    // name + lap (optional)
+    if(showNames){
+      ctx.fillStyle='#e6eef6'; ctx.font='12px Inter, sans-serif'; ctx.fillText(this.name + (this.finished? ' ✅' : ''), this.x, this.y-8);
+      ctx.fillStyle='#9aa6b2'; ctx.font='11px Inter, sans-serif'; ctx.fillText('Lap '+this.lap, this.x, this.y-20);
+    }
+
+    // draw particles
+    if(this.particles.length){
+      for(let p of this.particles) p.draw();
+    }
+  }
+}
+
+function roundRect(ctx,x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();}
+
+let player=new Racer("Player","#00d4ff",100,true);
+let ai1=new Racer("AI 1","#ff6b6b",200);
+let ai2=new Racer("AI 2","#7b61ff",300);
+let racers=[player,ai1,ai2];
+
+function resetRace(){
+  racers.forEach((r,i)=>{r.x=60; r.lap=0; r.finished=false; r.nitro=100; r.y=100 + i*100; r.particles=[]});
+}
+
+// finish line pulse
+let finishPulse=0;
+
+function loop(){
+  // clear using logical dimensions
+  ctx.clearRect(0,0,logicalWidth,logicalHeight);
+
+  // subtle moving grid background for depth
+  drawMovingGrid();
+
+  // draw track finishing area
+  finishPulse=(Math.sin(Date.now()/300)+1)/2;
+  ctx.fillStyle=`rgba(255,255,255,${0.04 + finishPulse*0.02})`;
+  ctx.fillRect(logicalWidth-120,0,8,logicalHeight);
+
+  ctx.save(); ctx.fillStyle='#ffd36e'; ctx.font='14px Inter, sans-serif'; ctx.fillText('FINISH', logicalWidth-170, 26); ctx.restore();
+
+  // update & draw racers
+  racers.forEach(r=>r.update(keys));
+  racers.sort((a,b)=> (b.lap - a.lap) || (b.x - a.x)); // leaderboard sort
+  racers.forEach(r=>r.draw());
+
+  // UI updates
+  lapDisplay.textContent = player.lap + ' / 3';
+  nitroFill.style.width = Math.max(0, Math.min(100, player.nitro)) + '%';
+
+  // leaderboard
+  renderLeaderboard();
+
+  // finish winner
+  let winner = racers.find(r=>r.finished);
+  if(winner){
+    ctx.save(); ctx.fillStyle='rgba(255,255,255,0.95)'; ctx.font='28px Inter, sans-serif'; ctx.fillText(winner.name + ' Wins!', logicalWidth/2-90, logicalHeight/2 - 10);
+    ctx.restore();
+  }
+
+  requestAnimationFrame(loop);
+}
+
+function renderLeaderboard(){
+  leaderboardList.innerHTML='';
+  racers.forEach((r,idx)=>{
+    const el = document.createElement('div'); el.className='leader-row';
+    el.innerHTML = `<div style=\"display:flex;gap:8px;align-items:center\"><div style=\"width:12px;height:12px;border-radius:3px;background:${r.color}\"></div><div class=\"name\">${r.name}</div></div><div>${r.lap} L</div>` + (r.finished?'<div class="finish-badge">FIN</div>':'');
+    leaderboardList.appendChild(el);
+  });
+}
+
+// moving grid background
+let gridOffset=0;
+function drawMovingGrid(){
+  gridOffset += 0.6;
+  ctx.save();
+  ctx.fillStyle='transparent';
+  ctx.fillRect(0,0,logicalWidth,logicalHeight);
+  ctx.strokeStyle='rgba(255,255,255,0.02)'; ctx.lineWidth=1;
+  for(let x = - (gridOffset % 40); x<logicalWidth; x+=40){ ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x+6,logicalHeight); ctx.stroke(); }
+  for(let y=0;y<logicalHeight;y+=40){ ctx.beginPath(); ctx.moveTo(0,y + (gridOffset%40)); ctx.lineTo(logicalWidth, y + (gridOffset%40)); ctx.stroke(); }
+  ctx.restore();
+}
+
+// resize on initial load to make sure transforms set
+resizeCanvas();
+loop();
+
+/* ======= Background arcade music via WebAudio (no external files) ======= */
+let audioCtx=null, musicPlaying=false, musicInterval=null, masterGain=null;
+const musicBtn = document.getElementById('musicBtn');
+
+function startAudioOnFirstGesture(){
+  if(audioCtx) return;
+  try{
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    masterGain = audioCtx.createGain(); masterGain.gain.value = 0.08; masterGain.connect(audioCtx.destination);
+  }catch(e){ console.warn('AudioContext not available', e); }
+}
+
+function startMusic(){
+  if(!audioCtx) startAudioOnFirstGesture();
+  if(!audioCtx) return;
+  if(musicPlaying) return;
+  musicPlaying = true; musicBtn.textContent = 'Stop Music';
+
+  const tempo = 120; // bpm
+  const beatMs = 60000 / tempo;
+  let step = 0;
+  const melody = [440, 440, 0, 440, 0, 349, 440, 0]; // simple motif (Hz, 0 = rest)
+
+  musicInterval = setInterval(()=>{
+    const freq = melody[step % melody.length];
+    if(freq>0){
+      const osc = audioCtx.createOscillator();
+      const env = audioCtx.createGain();
+      osc.type = 'square';
+      osc.frequency.value = freq * (Math.random()*0.03 + 0.985);
+      env.gain.value = 0.0001;
+      osc.connect(env); env.connect(masterGain);
+      const now = audioCtx.currentTime;
+      env.gain.linearRampToValueAtTime(0.09, now + 0.01);
+      env.gain.linearRampToValueAtTime(0.0001, now + 0.22);
+      osc.start(now); osc.stop(now + 0.25);
+    }
+    step++;
+  }, beatMs/2);
+}
+
+function stopMusic(){
+  if(musicInterval) clearInterval(musicInterval); musicInterval=null; musicPlaying=false; musicBtn.textContent='Play Music';
+}
+
+musicBtn.addEventListener('click', ()=>{
+  // user click guarantees audio can start in browsers
+  if(!audioCtx) startAudioOnFirstGesture();
+  if(!musicPlaying) startMusic(); else stopMusic();
+});
+
+// auto-start on first user gesture (so music button can also work immediately)
+['pointerdown','keydown','touchstart'].forEach(evt=> window.addEventListener(evt, startAudioOnFirstGesture, {once:true}));
+
+/* ======= Ensure touch controls start audio on first touch (UX) ======= */
+['pointerdown','touchstart'].forEach(evt=> window.addEventListener(evt, ()=>{ if(!audioCtx) startAudioOnFirstGesture(); }, {once:true}));
+
+/* ======= Accessibility: Prevent accidental scrolling when touching controls ======= */
+['btnUp','btnDown','btnLeft','btnRight','btnNitro'].forEach(id=>{
+  const el = document.getElementById(id);
+  if(!el) return;
+  el.addEventListener('touchmove', e=>{ e.preventDefault(); }, {passive:false});
+});
+
+</script>
+</body>
+</html>
